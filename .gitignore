@@ -1,0 +1,25 @@
+# Build artifacts
+build/
+lib/
+
+# macOS
+.DS_Store
+*.dSYM
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+
+# Backup files
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
