@@ -221,40 +221,50 @@ jobs:
           echo "sha256=$SHA256" >> $GITHUB_OUTPUT
 
       #########################################
-      # STEP 11: Update Homebrew Formula
+      # STEP 11: Update Homebrew Tap Repository
       #########################################
-      - name: Update Homebrew formula
+      - name: Checkout tap repository
+        uses: actions/checkout@v4
+        with:
+          repository: ryanthedev/homebrew-mss
+          path: homebrew-mss
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update formula in tap
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.version }}"
           SHA256="${{ steps.sha256.outputs.sha256 }}"
 
           # Update version
-          sed -i '' 's/version ".*"/version "'"$NEW_VERSION"'"/' Formula/mss.rb
+          sed -i '' 's/version ".*"/version "'"$NEW_VERSION"'"/' homebrew-mss/Formula/mss.rb
 
           # Update URL
-          sed -i '' 's|url ".*"|url "https://github.com/${{ github.repository }}/archive/refs/tags/v'"$NEW_VERSION"'.tar.gz"|' Formula/mss.rb
+          sed -i '' 's|url ".*"|url "https://github.com/${{ github.repository }}/archive/refs/tags/v'"$NEW_VERSION"'.tar.gz"|' homebrew-mss/Formula/mss.rb
 
           # Update SHA256
-          sed -i '' 's/sha256 ".*"/sha256 "'"$SHA256"'"/' Formula/mss.rb
+          sed -i '' 's/sha256 ".*"/sha256 "'"$SHA256"'"/' homebrew-mss/Formula/mss.rb
 
           # Verify changes
-          echo "Updated Formula/mss.rb:"
-          head -10 Formula/mss.rb
+          echo "Updated homebrew-mss/Formula/mss.rb:"
+          head -10 homebrew-mss/Formula/mss.rb
 
-      #########################################
-      # STEP 12: Commit Formula Update
-      #########################################
-      - name: Commit formula update
+      - name: Commit and push to tap
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.version }}"
 
-          git add Formula/mss.rb
-          git commit -m "chore: update Homebrew formula for v$NEW_VERSION [skip ci]"
+          cd homebrew-mss
 
-          echo "Committed formula update"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add Formula/mss.rb
+          git commit -m "chore: update formula for mss v$NEW_VERSION"
+          git push
+
+          echo "Pushed formula update to tap repository"
 
       #########################################
-      # STEP 13: Create Git Tag
+      # STEP 12: Create Git Tag
       #########################################
       - name: Create and push tag
         run: |
@@ -266,7 +276,7 @@ jobs:
           echo "Created tag v$NEW_VERSION"
 
       #########################################
-      # STEP 14: Push Changes
+      # STEP 13: Push Changes
       #########################################
       - name: Push commits and tags
         run: |
@@ -279,7 +289,7 @@ jobs:
           echo "Pushed commits and tags"
 
       #########################################
-      # STEP 15: Create GitHub Release
+      # STEP 14: Create GitHub Release
       #########################################
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -295,7 +305,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       #########################################
-      # STEP 16: Output Release Information
+      # STEP 15: Output Release Information
       #########################################
       - name: Output release information
         run: |
@@ -313,6 +323,7 @@ jobs:
           echo ""
           echo "📋 Next steps:"
           echo "  1. Verify the release at the URL above"
-          echo "  2. Test installation: brew install ryanthedev/mss/Formula/mss.rb"
-          echo "  3. Update documentation if needed"
+          echo "  2. Verify tap update: https://github.com/ryanthedev/homebrew-mss"
+          echo "  3. Test installation: brew tap ryanthedev/mss && brew install mss"
+          echo "  4. Update documentation if needed"
           echo ""
