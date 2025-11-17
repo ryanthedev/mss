@@ -20,7 +20,8 @@ The mss library is designed to be installed system-wide so multiple applications
 
 **Install the library:**
 ```bash
-brew install ryanthedev/tap/mss
+brew tap ryanthedev/mss
+brew install mss
 ```
 
 **Install the scripting addition (one-time, requires root + SIP disabled):**
@@ -108,58 +109,32 @@ gh release create vX.Y.Z mss-X.Y.Z.tar.gz \
 # 5. Publish
 ```
 
-**5. Update Homebrew formula:**
-```bash
-# Get SHA256 of the release tarball
-shasum -a 256 mss-X.Y.Z.tar.gz
+**5. Homebrew formula update (automatic):**
 
-# Update Formula/mss.rb:
-# - Change url to new version
-# - Update sha256 with output from above
-# - Update version number
-
-git add Formula/mss.rb
-git commit -m "Update Homebrew formula to X.Y.Z"
-git push
+The GitHub Actions workflow automatically updates the Homebrew formula in the `homebrew-mss` tap repository. Verify the update at:
 ```
+https://github.com/ryanthedev/homebrew-mss/commits/main
+```
+
+No manual action required!
 
 ---
 
 ## Homebrew Distribution
 
-### Using the In-Repo Formula
+### Homebrew Tap
 
-Users can install directly from this repository:
+The mss library is distributed via a dedicated Homebrew tap at:
+**https://github.com/ryanthedev/homebrew-mss**
 
+**Users install with:**
 ```bash
-brew install ryanthedev/mss/Formula/mss.rb
-```
-
-### Creating a Homebrew Tap (Optional)
-
-For easier distribution, create a separate tap repository:
-
-**1. Create tap repository:**
-```bash
-# Create new repo: homebrew-tap (or homebrew-mss)
-# Repository must be named homebrew-* for Homebrew to find it
-```
-
-**2. Add formula to tap:**
-```bash
-# In homebrew-tap repo:
-mkdir -p Formula
-cp /path/to/mss/Formula/mss.rb Formula/mss.rb
-git add Formula/mss.rb
-git commit -m "Add mss formula"
-git push
-```
-
-**3. Users install from tap:**
-```bash
-brew tap ryanthedev/tap
+brew tap ryanthedev/mss
 brew install mss
 ```
+
+**Formula maintenance:**
+The GitHub Actions release workflow automatically updates the formula in the tap repository when creating releases. The formula is kept in sync with the main repository's version, URL, and SHA256 checksums.
 
 ### Submitting to homebrew-core (Advanced)
 
@@ -414,10 +389,7 @@ nvram boot-args | grep arm64e_preview_abi
 
 **Formula not found:**
 ```bash
-# Use full path to formula
-brew install ryanthedev/mss/Formula/mss.rb
-
-# Or tap the repo first
+# Make sure to tap the repository first
 brew tap ryanthedev/mss
 brew install mss
 ```
@@ -443,22 +415,25 @@ brew install mss
 ### For Maintainers
 
 ```bash
-# Create release
+# Create release (GitHub Actions workflow handles everything)
+# Just trigger the workflow via GitHub UI or:
+gh workflow run release.yml
+
+# Or manually:
 make clean && make dist
 git tag vX.Y.Z
 git push --tags
 gh release create vX.Y.Z mss-X.Y.Z.tar.gz
 
-# Update Homebrew formula
-shasum -a 256 mss-X.Y.Z.tar.gz
-# Edit Formula/mss.rb with new version and SHA
+# Note: Homebrew tap is updated automatically by GitHub Actions
 ```
 
 ### For Users
 
 ```bash
 # Install
-brew install ryanthedev/mss/Formula/mss.rb
+brew tap ryanthedev/mss
+brew install mss
 
 # Load scripting addition
 sudo mss load

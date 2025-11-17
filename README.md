@@ -20,10 +20,6 @@ Based on the [yabai scripting addition](https://github.com/koekeishiya/yabai) by
 
 ### Installation
 ```bash
-# Direct from GitHub
-brew install ryanthedev/mss/Formula/mss.rb
-
-# Or tap repo first
 brew tap ryanthedev/mss
 brew install mss
 ```
