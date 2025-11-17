@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 // Library version
-#define MSS_VERSION "0.0.1"
+#define MSS_VERSION "0.0.2"
 
 // Window animation structure for swap operations
 struct mss_window_animation {
