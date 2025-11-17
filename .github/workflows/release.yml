@@ -221,47 +221,25 @@ jobs:
           echo "sha256=$SHA256" >> $GITHUB_OUTPUT
 
       #########################################
-      # STEP 11: Update Homebrew Tap Repository
+      # STEP 11: Trigger Tap Repository Update
       #########################################
-      - name: Checkout tap repository
-        uses: actions/checkout@v4
-        with:
-          repository: ryanthedev/homebrew-mss
-          path: homebrew-mss
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update formula in tap
+      - name: Trigger tap repository update
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.version }}"
           SHA256="${{ steps.sha256.outputs.sha256 }}"
 
-          # Update version
-          sed -i '' 's/version ".*"/version "'"$NEW_VERSION"'"/' homebrew-mss/Formula/mss.rb
+          echo "Triggering formula update in homebrew-mss repository..."
 
-          # Update URL
-          sed -i '' 's|url ".*"|url "https://github.com/${{ github.repository }}/archive/refs/tags/v'"$NEW_VERSION"'.tar.gz"|' homebrew-mss/Formula/mss.rb
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.TAP_GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/ryanthedev/homebrew-mss/dispatches \
+            -d "{\"event_type\":\"update_formula\",\"client_payload\":{\"version\":\"$NEW_VERSION\",\"sha256\":\"$SHA256\",\"tarball_url\":\"https://github.com/${{ github.repository }}/archive/refs/tags/v$NEW_VERSION.tar.gz\"}}"
 
-          # Update SHA256
-          sed -i '' 's/sha256 ".*"/sha256 "'"$SHA256"'"/' homebrew-mss/Formula/mss.rb
-
-          # Verify changes
-          echo "Updated homebrew-mss/Formula/mss.rb:"
-          head -10 homebrew-mss/Formula/mss.rb
-
-      - name: Commit and push to tap
-        run: |
-          NEW_VERSION="${{ steps.new_version.outputs.version }}"
-
-          cd homebrew-mss
-
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-          git add Formula/mss.rb
-          git commit -m "chore: update formula for mss v$NEW_VERSION"
-          git push
-
-          echo "Pushed formula update to tap repository"
+          echo "✓ Triggered formula update for version $NEW_VERSION"
+          echo "  The homebrew-mss repository will update automatically"
 
       #########################################
       # STEP 12: Create Git Tag
