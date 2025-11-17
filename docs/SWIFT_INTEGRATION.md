@@ -1463,8 +1463,8 @@ nvram boot-args
 
 **Cause:** Client library version doesn't match payload version
 **Check versions:**
-- Client: `MSS_VERSION` in `mss_types.h` (e.g., "2.1.23")
-- Payload: `OSAX_VERSION` in `common.h` (must match)
+- Single source: `MSS_VERSION` in `mss_types.h` (e.g., "0.0.1")
+- Payload version is automatically synced via build system (injected as `OSAX_VERSION` during compilation)
 
 **Solution:** Rebuild library and reinstall:
 ```bash

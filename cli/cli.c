@@ -1,5 +1,5 @@
 /**
- * mss-install - CLI installer for mss
+ * mss - CLI tool for mss library
  *
  * A command-line tool for installing, loading, and managing the
  * macOS scripting addition for window and space management.
@@ -10,7 +10,7 @@
  * - On ARM64: boot-arg '-arm64e_preview_abi' must be set
  *
  * Build:
- *   make cli 
+ *   make cli
  *
  * Usage:
  *   sudo ./build/mss <command> [options]
@@ -63,7 +63,7 @@ static void print_error(const char *format, ...)
 
 static void print_help(const char *program_name)
 {
-    printf("mss-install - macOS Scripting Addition Installer\n");
+    printf("mss - macOS Scripting Addition Manager\n");
     printf("\n");
     printf("Usage: %s <command> [options]\n", program_name);
     printf("\n");

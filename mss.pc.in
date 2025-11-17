@@ -1,0 +1,12 @@
+prefix=@PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/mss
+
+Name: mss
+Description: macOS Scripting Addition Library for window and space management
+URL: https://github.com/ryanthedev/mss
+Version: @VERSION@
+Requires:
+Libs: -L${libdir} -lmss -framework Cocoa -framework CoreGraphics
+Cflags: -I${includedir}

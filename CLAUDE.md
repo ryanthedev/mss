@@ -98,9 +98,9 @@ Function pointer discovery is performed at runtime using Objective-C runtime int
 ## Key Implementation Details
 
 ### Version Synchronization
-Version is defined in two places and must match:
-- `include/mss_types.h`: `#define MSS_VERSION "2.1.23"`
-- `src/common.h`: `#define OSAX_VERSION "2.1.23"`
+Version is defined in **one place** (single source of truth):
+- `include/mss_types.h`: `#define MSS_VERSION "0.0.1"`
+- `src/common.h`: `OSAX_VERSION` is injected via `-DOSAX_VERSION` compiler flag (extracts from `MSS_VERSION`)
 
 ### Installation Paths
 - SA bundle: `/Library/ScriptingAdditions/mss.osax/`

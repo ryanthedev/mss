@@ -2,6 +2,11 @@
 build/
 lib/
 
+# Distribution
+dist/
+*.tar.gz
+mss.pc
+
 # macOS
 .DS_Store
 *.dSYM

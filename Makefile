@@ -10,6 +10,7 @@ FRAMEWORKS_LOADER := -framework Cocoa
 MIN_VERSION      := -mmacosx-version-min=11.0
 CFLAGS        := -O3 -fno-objc-arc -Wall -Wextra
 PREFIX        := /usr/local
+VERSION       := $(shell grep 'MSS_VERSION' include/mss_types.h | cut -d'"' -f2)
 
 # Directories
 SRC_DIR       := src
@@ -42,7 +43,7 @@ XXD           := xxd
 # Main targets
 # ============================================================================
 
-.PHONY: all clean install uninstall cli help
+.PHONY: all clean install uninstall cli help dist
 
 all: $(STATIC_LIB)
 	@echo "✓ Built libmss.a"
@@ -66,6 +67,7 @@ $(PAYLOAD): $(PAYLOAD_SRC) $(SRC_DIR)/common.h $(SRC_DIR)/hashtable.h \
 	@echo "Building payload for $(ARCHS_OSAX)..."
 	$(CC) $(PAYLOAD_SRC) -shared -fPIC $(CFLAGS) $(MIN_VERSION) \
 		$(foreach arch,$(ARCHS_OSAX),-arch $(arch)) \
+		-DOSAX_VERSION=\"$(VERSION)\" \
 		-o $@ \
 		-F/System/Library/PrivateFrameworks \
 		$(FRAMEWORKS) $(FRAMEWORKS_SA)
@@ -98,6 +100,7 @@ $(CLIENT_OBJ): $(CLIENT_SRC) $(PAYLOAD_BIN_C) $(LOADER_BIN_C) $(PUBLIC_HEADERS) 
 	@echo "Compiling client library..."
 	$(CC) -c $(CLIENT_SRC) $(CFLAGS) $(MIN_VERSION) \
 		$(foreach arch,$(ARCHS),-arch $(arch)) \
+		-DOSAX_VERSION=\"$(VERSION)\" \
 		$(FRAMEWORKS) \
 		-F/System/Library/PrivateFrameworks \
 		-I$(INCLUDE_DIR) \
@@ -119,21 +122,29 @@ $(LIB_DIR):
 # Installation
 # ============================================================================
 
-install: $(STATIC_LIB)
+install: $(STATIC_LIB) cli
 	@echo "Installing mss..."
 	install -d $(PREFIX)/lib
 	install -m 644 $(STATIC_LIB) $(PREFIX)/lib/
 	install -d $(PREFIX)/include/mss
 	install -m 644 $(INCLUDE_DIR)/mss.h $(PREFIX)/include/mss/
 	install -m 644 $(INCLUDE_DIR)/mss_types.h $(PREFIX)/include/mss/
+	install -d $(PREFIX)/bin
+	install -m 755 $(BUILD_DIR)/mss $(PREFIX)/bin/mss
+	install -d $(PREFIX)/lib/pkgconfig
+	@sed 's|@PREFIX@|$(PREFIX)|g; s|@VERSION@|$(VERSION)|g' mss.pc.in > $(PREFIX)/lib/pkgconfig/mss.pc
 	@echo "✓ Installed to $(PREFIX)"
 	@echo "  Library: $(PREFIX)/lib/libmss.a"
 	@echo "  Headers: $(PREFIX)/include/mss/"
+	@echo "  CLI:     $(PREFIX)/bin/mss"
+	@echo "  Pkg-cfg: $(PREFIX)/lib/pkgconfig/mss.pc"
 
 uninstall:
 	@echo "Uninstalling mss..."
 	rm -f $(PREFIX)/lib/libmss.a
 	rm -rf $(PREFIX)/include/mss
+	rm -f $(PREFIX)/bin/mss
+	rm -f $(PREFIX)/lib/pkgconfig/mss.pc
 	@echo "✓ Uninstalled from $(PREFIX)"
 
 # ============================================================================
@@ -179,6 +190,7 @@ help:
 	@echo "  make uninstall    - Remove from $(PREFIX)"
 	@echo "  make cli          - Build CLI installer tool"
 	@echo "  make clean        - Remove build artifacts"
+	@echo "  make dist         - Create release tarball"
 	@echo "  make help         - Show this help"
 	@echo ""
 	@echo "Requirements:"
@@ -190,3 +202,26 @@ help:
 	@echo "  Library:   $(STATIC_LIB)"
 	@echo "  Headers:   $(INCLUDE_DIR)/"
 	@echo "  Installer: $(BUILD_DIR)/mss"
+
+# ============================================================================
+# Distribution
+# ============================================================================
+
+dist: all cli
+	@echo "Creating distribution tarball..."
+	@mkdir -p dist/mss-$(VERSION)
+	@cp -r $(LIB_DIR) dist/mss-$(VERSION)/
+	@cp -r $(INCLUDE_DIR) dist/mss-$(VERSION)/
+	@mkdir -p dist/mss-$(VERSION)/bin
+	@cp $(BUILD_DIR)/mss dist/mss-$(VERSION)/bin/mss
+	@cp mss.pc.in dist/mss-$(VERSION)/
+	@cp Makefile dist/mss-$(VERSION)/
+	@cp LICENSE dist/mss-$(VERSION)/
+	@cp CLAUDE.md dist/mss-$(VERSION)/ 2>/dev/null || true
+	@cp SWIFT_INTEGRATION.md dist/mss-$(VERSION)/ 2>/dev/null || true
+	@cp README.md dist/mss-$(VERSION)/ 2>/dev/null || true
+	@cd dist && tar -czf mss-$(VERSION).tar.gz mss-$(VERSION)
+	@mv dist/mss-$(VERSION).tar.gz .
+	@rm -rf dist
+	@echo "✓ Created mss-$(VERSION).tar.gz"
+	@shasum -a 256 mss-$(VERSION).tar.gz
