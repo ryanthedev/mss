@@ -1,10 +1,10 @@
 class Mss < Formula
   desc "macOS Scripting Addition Library for window and space management"
   homepage "https://github.com/ryanthedev/mss"
-  url "https://github.com/ryanthedev/mss/archive/refs/tags/v0.0.1.tar.gz"
-  sha256 "0b94142b70dcf118eb2fe0bb1cfdb3db24e8b12454764a1051f395ad3f389e13" 
+  url "https://github.com/ryanthedev/mss/archive/refs/tags/v0.0.2.tar.gz"
+  sha256 "6c3018b0702b59db0c6188cea314151056ad701fe2be019219fce4557c5e99c0" 
   license "MIT"
-  version "0.0.1"
+  version "0.0.2"
 
   depends_on :macos => :big_sur
   depends_on xcode: :build
