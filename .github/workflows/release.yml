@@ -180,7 +180,7 @@ jobs:
       # STEP 9: Build Release Tarball
       #########################################
       - name: Build release tarball
-        if: ${{ !github.event.inputs.skip_build }}
+        if: ${{ !inputs.skip_build }}
         run: |
           # Install Xcode Command Line Tools (usually already installed on macos-latest)
           # Build the library and CLI
