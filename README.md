@@ -6,23 +6,26 @@ A lightweight C library for programmatic window and space management on macOS th
 [![macOS](https://img.shields.io/badge/macOS-11.0+-blue.svg)](https://www.apple.com/macos/)
 
 ## Overview
+Yabai and Aerospace built great apps. I just want something different. I want space manipulation while I still can have it.
 
-**mss** provides a clean C API for controlling macOS windows and Spaces by injecting a scripting addition into Dock.app. It exposes powerful window management capabilities normally unavailable to third-party applications:
+So I ripped this out of yabai.
+Based on the [yabai scripting addition](https://github.com/koekeishiya/yabai) by Åsmund Vikane.
 
 - **Window Operations:** Move, resize, set opacity, change layers, focus, minimize
 - **Window Queries:** Get frame, opacity, layer, sticky state, minimized state
 - **Space Management:** Create, destroy, focus, and move spaces between displays
 - **Display Queries:** Get display count and list of displays
 
-Based on the [yabai scripting addition](https://github.com/koekeishiya/yabai) by Åsmund Vikane.
-
 ## Quick Start
 
 ### Installation
-
-**Via Homebrew (recommended):**
 ```bash
+# Direct from GitHub
 brew install ryanthedev/mss/Formula/mss.rb
+
+# Or tap repo first
+brew tap ryanthedev/mss
+brew install mss
 ```
 
 **From source:**
@@ -206,31 +209,14 @@ Original yabai scripting addition:
 - Copyright © 2019 Åsmund Vikane
 - Copyright © 2025 mss contributors
 
-## Contributing
-
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-For bugs and feature requests, open an [issue](https://github.com/ryanthedev/mss/issues).
 
 ## Acknowledgments
 
 Based on the [yabai scripting addition](https://github.com/koekeishiya/yabai) by Åsmund Vikane. Special thanks to the yabai project for pioneering this approach to macOS window management.
 
-## Support
-
-- **Issues:** https://github.com/ryanthedev/mss/issues
-- **Documentation:** See docs in this repository
-- **API Reference:** `include/mss.h`
-
 ## Related Projects
 
 - [yabai](https://github.com/koekeishiya/yabai) - Tiling window manager for macOS
-- [skhd](https://github.com/koekeishiya/skhd) - Simple hotkey daemon for macOS
 
 ---
 

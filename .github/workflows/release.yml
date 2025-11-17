@@ -1,0 +1,318 @@
+name: Automated Release
+
+on:
+  # Manual trigger with version bump type selection
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - minor
+          - patch
+        default: 'minor'
+      skip_build:
+        description: 'Skip build and only create release from existing tarball'
+        required: false
+        type: boolean
+        default: false
+
+  # Automatic trigger on push to main (optional - comment out if not desired)
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'src/**'
+  #     - 'include/**'
+  #     - 'Makefile'
+
+# Prevent concurrent releases
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # Required for creating releases and pushing commits
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      #########################################
+      # STEP 1: Checkout Repository
+      #########################################
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog generation
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      #########################################
+      # STEP 2: Configure Git
+      #########################################
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      #########################################
+      # STEP 3: Parse Current Version
+      #########################################
+      - name: Get current version
+        id: current_version
+        run: |
+          CURRENT_VERSION=$(grep 'MSS_VERSION' include/mss_types.h | cut -d'"' -f2)
+          echo "Current version: $CURRENT_VERSION"
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Split version into components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          echo "minor=$MINOR" >> $GITHUB_OUTPUT
+          echo "patch=$PATCH" >> $GITHUB_OUTPUT
+
+      #########################################
+      # STEP 4: Calculate New Version
+      #########################################
+      - name: Calculate new version
+        id: new_version
+        run: |
+          MAJOR=${{ steps.current_version.outputs.major }}
+          MINOR=${{ steps.current_version.outputs.minor }}
+          PATCH=${{ steps.current_version.outputs.patch }}
+
+          BUMP_TYPE="${{ github.event.inputs.bump_type }}"
+          # Default to minor if triggered by push
+          if [ -z "$BUMP_TYPE" ]; then
+            BUMP_TYPE="minor"
+          fi
+
+          if [ "$BUMP_TYPE" == "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [ "$BUMP_TYPE" == "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      #########################################
+      # STEP 5: Check if Version Already Exists
+      #########################################
+      - name: Check if version tag exists
+        id: check_tag
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
+            echo "Error: Tag v$NEW_VERSION already exists!"
+            exit 1
+          fi
+          echo "Tag v$NEW_VERSION is available"
+
+      #########################################
+      # STEP 6: Update Version in Source Files
+      #########################################
+      - name: Update version in mss_types.h
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          sed -i '' 's/#define MSS_VERSION ".*"/#define MSS_VERSION "'"$NEW_VERSION"'"/' include/mss_types.h
+
+          # Verify the change
+          grep 'MSS_VERSION' include/mss_types.h
+
+          echo "Updated version to $NEW_VERSION in include/mss_types.h"
+
+      #########################################
+      # STEP 7: Generate Changelog
+      #########################################
+      - name: Generate changelog
+        id: changelog
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+
+          # Get the last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          # Generate changelog
+          CHANGELOG_FILE="CHANGELOG_${NEW_VERSION}.md"
+
+          echo "# Release v${NEW_VERSION}" > "$CHANGELOG_FILE"
+          echo "" >> "$CHANGELOG_FILE"
+          echo "## Changes since v${CURRENT_VERSION}" >> "$CHANGELOG_FILE"
+          echo "" >> "$CHANGELOG_FILE"
+
+          if [ -n "$LAST_TAG" ]; then
+            # Get commits since last tag
+            git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> "$CHANGELOG_FILE"
+          else
+            # Get all commits if no previous tag
+            git log --pretty=format:"- %s (%h)" --no-merges >> "$CHANGELOG_FILE"
+          fi
+
+          echo "" >> "$CHANGELOG_FILE"
+          echo "" >> "$CHANGELOG_FILE"
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/v${CURRENT_VERSION}...v${NEW_VERSION}" >> "$CHANGELOG_FILE"
+
+          # Save changelog path
+          echo "file=$CHANGELOG_FILE" >> $GITHUB_OUTPUT
+
+          # Display changelog
+          cat "$CHANGELOG_FILE"
+
+      #########################################
+      # STEP 8: Commit Version Bump
+      #########################################
+      - name: Commit version bump
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+
+          git add include/mss_types.h
+          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+
+          echo "Committed version bump"
+
+      #########################################
+      # STEP 9: Build Release Tarball
+      #########################################
+      - name: Build release tarball
+        if: ${{ !github.event.inputs.skip_build }}
+        run: |
+          # Install Xcode Command Line Tools (usually already installed on macos-latest)
+          # Build the library and CLI
+          make clean
+          make all
+          make cli
+
+          # Create distribution tarball
+          make dist
+
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          TARBALL="mss-${NEW_VERSION}.tar.gz"
+
+          if [ ! -f "$TARBALL" ]; then
+            echo "Error: Tarball $TARBALL not found!"
+            exit 1
+          fi
+
+          echo "Successfully built $TARBALL"
+          ls -lh "$TARBALL"
+
+      #########################################
+      # STEP 10: Calculate SHA256
+      #########################################
+      - name: Calculate SHA256
+        id: sha256
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          TARBALL="mss-${NEW_VERSION}.tar.gz"
+
+          if [ ! -f "$TARBALL" ]; then
+            echo "Error: Tarball $TARBALL not found!"
+            exit 1
+          fi
+
+          SHA256=$(shasum -a 256 "$TARBALL" | cut -d' ' -f1)
+          echo "SHA256: $SHA256"
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+
+      #########################################
+      # STEP 11: Update Homebrew Formula
+      #########################################
+      - name: Update Homebrew formula
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          SHA256="${{ steps.sha256.outputs.sha256 }}"
+
+          # Update version
+          sed -i '' 's/version ".*"/version "'"$NEW_VERSION"'"/' Formula/mss.rb
+
+          # Update URL
+          sed -i '' 's|url ".*"|url "https://github.com/${{ github.repository }}/archive/refs/tags/v'"$NEW_VERSION"'.tar.gz"|' Formula/mss.rb
+
+          # Update SHA256
+          sed -i '' 's/sha256 ".*"/sha256 "'"$SHA256"'"/' Formula/mss.rb
+
+          # Verify changes
+          echo "Updated Formula/mss.rb:"
+          head -10 Formula/mss.rb
+
+      #########################################
+      # STEP 12: Commit Formula Update
+      #########################################
+      - name: Commit formula update
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+
+          git add Formula/mss.rb
+          git commit -m "chore: update Homebrew formula for v$NEW_VERSION [skip ci]"
+
+          echo "Committed formula update"
+
+      #########################################
+      # STEP 13: Create Git Tag
+      #########################################
+      - name: Create and push tag
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+
+          # Create annotated tag
+          git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
+
+          echo "Created tag v$NEW_VERSION"
+
+      #########################################
+      # STEP 14: Push Changes
+      #########################################
+      - name: Push commits and tags
+        run: |
+          # Push commits
+          git push origin main
+
+          # Push tags
+          git push origin --tags
+
+          echo "Pushed commits and tags"
+
+      #########################################
+      # STEP 15: Create GitHub Release
+      #########################################
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.new_version.outputs.version }}
+          name: Release v${{ steps.new_version.outputs.version }}
+          body_path: ${{ steps.changelog.outputs.file }}
+          files: mss-${{ steps.new_version.outputs.version }}.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true  # GitHub will append auto-generated notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      #########################################
+      # STEP 16: Output Release Information
+      #########################################
+      - name: Output release information
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          SHA256="${{ steps.sha256.outputs.sha256 }}"
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ Release v$NEW_VERSION created successfully!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "📦 Tarball: mss-${NEW_VERSION}.tar.gz"
+          echo "🔐 SHA256: $SHA256"
+          echo "🏷️  Tag: v$NEW_VERSION"
+          echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/v$NEW_VERSION"
+          echo ""
+          echo "📋 Next steps:"
+          echo "  1. Verify the release at the URL above"
+          echo "  2. Test installation: brew install ryanthedev/mss/Formula/mss.rb"
+          echo "  3. Update documentation if needed"
+          echo ""
