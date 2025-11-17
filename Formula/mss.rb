@@ -2,7 +2,7 @@ class Mss < Formula
   desc "macOS Scripting Addition Library for window and space management"
   homepage "https://github.com/ryanthedev/mss"
   url "https://github.com/ryanthedev/mss/archive/refs/tags/v0.0.1.tar.gz"
-  sha256 "" # TODO: Update with actual SHA256 after creating release
+  sha256 "0b94142b70dcf118eb2fe0bb1cfdb3db24e8b12454764a1051f395ad3f389e13" 
   license "MIT"
   version "0.0.1"
 
