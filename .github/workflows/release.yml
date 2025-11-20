@@ -224,22 +224,28 @@ jobs:
       # STEP 11: Trigger Tap Repository Update
       #########################################
       - name: Trigger tap repository update
+        env:
+          GH_TOKEN: ${{ secrets.MSS_BREW_GH_TOKEN }}
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.version }}"
           SHA256="${{ steps.sha256.outputs.sha256 }}"
+          TARBALL_URL="https://github.com/${{ github.repository }}/archive/refs/tags/v${NEW_VERSION}.tar.gz"
 
           echo "Triggering formula update in homebrew-mss repository..."
 
-          curl -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.TAP_GITHUB_TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/ryanthedev/homebrew-mss/dispatches \
-            -d "{\"event_type\":\"update_formula\",\"client_payload\":{\"version\":\"$NEW_VERSION\",\"sha256\":\"$SHA256\",\"tarball_url\":\"https://github.com/${{ github.repository }}/archive/refs/tags/v$NEW_VERSION.tar.gz\"}}"
+          gh workflow run update-formula.yml \
+            --repo ryanthedev/homebrew-mss \
+            --field version="${NEW_VERSION}" \
+            --field sha256="${SHA256}" \
+            --field tarball_url="${TARBALL_URL}"
 
-          echo "✓ Triggered formula update for version $NEW_VERSION"
-          echo "  The homebrew-mss repository will update automatically"
+          if [ $? -eq 0 ]; then
+            echo "✓ Successfully triggered formula update for version ${NEW_VERSION}"
+            echo "  View workflow runs: https://github.com/ryanthedev/homebrew-mss/actions"
+          else
+            echo "✗ Failed to trigger formula update"
+            exit 1
+          fi
 
       #########################################
       # STEP 12: Create Git Tag

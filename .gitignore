@@ -28,3 +28,5 @@ mss.pc
 # IDE
 .vscode/
 .idea/
+
+.env
