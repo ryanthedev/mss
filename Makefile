@@ -43,15 +43,34 @@ XXD           := xxd
 # Main targets
 # ============================================================================
 
-.PHONY: all clean install uninstall cli help dist
+.PHONY: all clean install uninstall cli help dist check-env
 
-all: $(STATIC_LIB)
+all: check-env $(STATIC_LIB)
 	@echo "✓ Built libmss.a"
 	@echo "  Location: $(STATIC_LIB)"
 	@echo "  Headers:  $(INCLUDE_DIR)/"
 	@echo ""
 	@echo "To install: make install"
 	@echo "To build cli: make cli"
+
+# Check build environment
+check-env:
+	@echo "=== Build Environment ==="
+	@echo "Developer dir: $$(xcode-select -p 2>&1)"
+	@echo "SDK path: $$(xcrun --show-sdk-path 2>&1)"
+	@echo "Compiler: $$(xcrun --find clang 2>&1)"
+	@if ! command -v xcrun >/dev/null 2>&1; then \
+		echo "❌ ERROR: xcrun not found. Install Command Line Tools:"; \
+		echo "   xcode-select --install"; \
+		exit 1; \
+	fi
+	@if ! xcrun --find clang >/dev/null 2>&1; then \
+		echo "❌ ERROR: clang not found. Install Command Line Tools:"; \
+		echo "   xcode-select --install"; \
+		exit 1; \
+	fi
+	@echo "✓ Build tools OK"
+	@echo ""
 
 $(STATIC_LIB): $(PAYLOAD_BIN_C) $(LOADER_BIN_C) $(CLIENT_OBJ) | $(LIB_DIR)
 	@echo "Creating static library..."
