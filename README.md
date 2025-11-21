@@ -37,9 +37,9 @@ sudo make install
 **⚠️ Important:** The scripting addition requires system protections to be disabled.
 
 **1. Disable SIP:**
-- Boot to Recovery Mode (⌘R at startup)
+- Boot to Recovery Mode (search for how it works on your chip)
 - Open Terminal
-- Run: `csrutil enable --without fs --without debug`
+- Run: `csrutil enable --without fs --without debug --without nvram`
 - Reboot
 
 **2. ARM64 Macs only:**

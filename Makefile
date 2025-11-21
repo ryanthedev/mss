@@ -69,8 +69,8 @@ $(PAYLOAD): $(PAYLOAD_SRC) $(SRC_DIR)/common.h $(SRC_DIR)/hashtable.h \
 		$(foreach arch,$(ARCHS_OSAX),-arch $(arch)) \
 		-DOSAX_VERSION=\"$(VERSION)\" \
 		-o $@ \
-		-F/System/Library/PrivateFrameworks \
-		$(FRAMEWORKS) $(FRAMEWORKS_SA)
+		-undefined dynamic_lookup \
+		$(FRAMEWORKS)
 	@echo "Signing payload..."
 	codesign -fs - $@ 2>/dev/null || true
 
@@ -102,7 +102,6 @@ $(CLIENT_OBJ): $(CLIENT_SRC) $(PAYLOAD_BIN_C) $(LOADER_BIN_C) $(PUBLIC_HEADERS) 
 		$(foreach arch,$(ARCHS),-arch $(arch)) \
 		-DOSAX_VERSION=\"$(VERSION)\" \
 		$(FRAMEWORKS) \
-		-F/System/Library/PrivateFrameworks \
 		-I$(INCLUDE_DIR) \
 		-include $(PAYLOAD_BIN_C) \
 		-include $(LOADER_BIN_C) \
@@ -157,8 +156,8 @@ cli: all
 		$(foreach arch,$(ARCHS),-arch $(arch)) \
 		-I$(INCLUDE_DIR) \
 		-L$(LIB_DIR) -lmss \
-		$(FRAMEWORKS) $(FRAMEWORKS_SA) \
-		-F/System/Library/PrivateFrameworks \
+		-undefined dynamic_lookup \
+		$(FRAMEWORKS) \
 		-o $(BUILD_DIR)/mss
 	@echo "Signing installer..."
 	codesign -fs - $(BUILD_DIR)/mss 2>/dev/null || true
